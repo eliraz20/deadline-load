@@ -6,4 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>deadline-load</AssemblyName>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="checks/**/*.cs" />
+  </ItemGroup>
 </Project>

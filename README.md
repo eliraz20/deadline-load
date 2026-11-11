@@ -1,19 +1,30 @@
 # Deadline Load
 
-Check whether upcoming assignments fit a daily study budget.
-
-## Try it
-
-Install the .NET 10 SDK, open this folder, and run:
+Plan how to spend your available study minutes on dated assignments. See each day's work, which assignment will slip, the earliest finish in this schedule, and exactly what moves if you lose a study day.
 
 ```sh
-dotnet run -- example.tsv
+dotnet run -- semester.tsv --off 2026-11-11
 ```
 
-Look for `short by 20` in the output. To use your own data, copy the example and pass the new filename. Use `-` to read from standard input.
+In this example Tuesday is booked, Wednesday has half the usual time, and the lab write-up becomes available Wednesday. The problem set already has 20 minutes done. Removing Wednesday moves work between days and changes which deadlines can be met. The example reports both schedules' differences.
 
-## Input
+## Your own workload
 
-First line: start date and minutes available per day. Following rows: due date, assignment, estimated minutes. Days include the start and due date. Separate columns with actual tabs, omit a header row, and use a period for decimal fractions.
+Requires the .NET 10 SDK. Run `dotnet run -- example.tsv` for the original two-assignment case or pass `-` to read from standard input. Separate columns with tabs. Blank lines and comment lines beginning with `#` are ignored.
 
-Built for general studies coursework. [ISCED-F field 001](https://uis.unesco.org/sites/default/files/documents/isced-fields-of-education-and-training-2013-en.pdf).
+| Row | Columns in order |
+|---|---|
+| First | Planning start date, default daily minutes |
+| Assignment | Due date, name, total estimated minutes, optional first available date, optional minutes completed before the plan |
+| Weekly availability | `week`, weekday name such as `Saturday`, available minutes |
+| One-day exception | `day`, date, available minutes |
+
+Use YYYY-MM-DD dates. A specific date overrides a weekday budget. A zero budget blocks the day. An assignment with no first available date can start on the planning start date. An optional `--off YYYY-MM-DD` reruns the plan with zero capacity on that date and prints the changes by day and assignment.
+
+## How the schedule works
+
+On each day the scheduler spends available minutes on released work in earliest-deadline order. Input order breaks deadline ties. Any spare minutes can go toward missed work, oldest deadline first. Assignments can be split across days. The result uses daily minute budgets and assumes estimates are accurate.
+
+A deadline includes that whole day. The shortfall counts the minutes of that assignment still outstanding when its deadline passed. The planner continues placing late work for up to 28 days after the last deadline or planning start, whichever is later. Any work still unplaced is shown explicitly.
+
+Run `dotnet run --project checks/Checks.csproj` from this folder to check ten scheduling scenarios.

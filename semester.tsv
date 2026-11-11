@@ -1,0 +1,10 @@
+# Start date and default daily study minutes
+2026-11-09	60
+week	Wednesday	30
+week	Saturday	0
+day	2026-11-10	0
+
+# Due date, assignment, total minutes, first available date, minutes already done
+2026-11-11	Problem set	90	2026-11-09	20
+2026-11-12	Lab write-up	65	2026-11-11	0
+2026-11-13	Seminar outline	45	2026-11-09	0
