@@ -1,6 +1,6 @@
 using System.Globalization;
 
-record Assignment(string Name, DateOnly Due, DateOnly Ready, long Estimate, long Done)
+record Assignment(string Name, DateOnly Due, DateOnly Ready, long Estimate, long Done, bool Continuous)
 {
     public long Remaining => Estimate - Done;
 }
@@ -11,8 +11,16 @@ sealed class StudyWeek(DateOnly start, long daily)
     public List<Assignment> Tasks { get; } = [];
     private readonly Dictionary<DayOfWeek, long> weekdays = [];
     private readonly Dictionary<DateOnly, long> dates = [];
+    private readonly Dictionary<DateOnly, List<(int Start, int End)>> windows = [];
 
-    public long Capacity(DateOnly day) => dates.GetValueOrDefault(day, weekdays.GetValueOrDefault(day.DayOfWeek, daily));
+    public long Capacity(DateOnly day) => windows.TryGetValue(day,out var slots) ? slots.Sum(s=>(long)s.End-s.Start) : dates.GetValueOrDefault(day, weekdays.GetValueOrDefault(day.DayOfWeek, daily));
+
+    public IEnumerable<(int? Start,long Minutes)> Sessions(DateOnly day)
+    {
+        if (windows.TryGetValue(day,out var slots))
+            foreach (var s in slots.OrderBy(s=>s.Start)) yield return (s.Start,s.End-s.Start);
+        else yield return (null,Capacity(day));
+    }
 
     public static DateOnly Date(string text) => DateOnly.ParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
@@ -39,6 +47,15 @@ sealed class StudyWeek(DateOnly start, long daily)
                     if (f.Length != 2) throw new FormatException("Start with a date and daily minutes.");
                     week = new StudyWeek(Date(f[0]), Minutes(f[1]));
                 }
+                else if (f is ["window",var date,var from,var until])
+                {
+                    var day=Date(date);
+                    int begin=(int)TimeOnly.ParseExact(from,"HH:mm").ToTimeSpan().TotalMinutes;
+                    int end=(int)TimeOnly.ParseExact(until,"HH:mm").ToTimeSpan().TotalMinutes;
+                    if (!week.windows.TryGetValue(day,out var list)) week.windows[day]=list=[];
+                    if (end<=begin || list.Any(s=>s.Start<end && s.End>begin)) throw new FormatException("Windows must be positive and disjoint.");
+                    list.Add((begin,end));
+                }
                 else if (f[0] == "day" && f.Length == 3)
                 {
                     if (!week.dates.TryAdd(Date(f[1]), Minutes(f[2]))) throw new FormatException("Duplicate date override.");
@@ -52,13 +69,14 @@ sealed class StudyWeek(DateOnly start, long daily)
                 }
                 else
                 {
-                    if (f.Length is < 3 or > 5) throw new FormatException("Use due date, task, estimate, optional available-from date and completed minutes.");
+                    if (f.Length is < 3 or > 6) throw new FormatException("Use due date, task, estimate, optional ready date, completed minutes and continuous or split.");
                     var due = Date(f[0]);
                     var ready = f.Length >= 4 ? Date(f[3]) : week.Start;
                     var estimate = Minutes(f[2]);
-                    long done = f.Length == 5 ? Minutes(f[4]) : 0;
+                    long done = f.Length >= 5 ? Minutes(f[4]) : 0;
+                    if (f.Length==6 && f[5] is not ("continuous" or "split")) throw new FormatException("Use continuous or split.");
                     if (done > estimate) throw new FormatException("Completed minutes exceed the estimate.");
-                    week.Tasks.Add(new(f[1], due, ready, estimate, done));
+                    week.Tasks.Add(new(f[1], due, ready, estimate, done, f.Length==6 && f[5]=="continuous"));
                 }
             }
             catch (FormatException e) { throw new FormatException($"Line {lineNo}: {e.Message}", e); }

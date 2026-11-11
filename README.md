@@ -28,3 +28,29 @@ On each day the scheduler spends available minutes on released work in earliest-
 A deadline includes that whole day. The shortfall counts the minutes of that assignment still outstanding when its deadline passed. The planner continues placing late work for up to 28 days after the last deadline or planning start, whichever is later. Any work still unplaced is shown explicitly.
 
 Run `dotnet run --project checks/Checks.csproj` from this folder to check ten scheduling scenarios.
+
+## Plan around split shifts
+
+Run `dotnet run -- windows.tsv`. A `window` row gives date, start and end (HH:mm). Disjoint windows replace the budget for that date. Add `continuous` after completed minutes for an assignment requiring one uninterrupted block. The sample places flashcards into two short windows and defers a 45-minute mock exam until a sufficiently long window. Untimed budgets act as one block each day. The schedule is a deadline-first heuristic, with continuous assignments first on a tie.
+
+## When to use it
+
+A student planning around classes or a shift needs to know which work can fit into the actual gaps.
+
+Example result:
+
+```text
+Study plan
+2026-11-09  35/50 min
+  09:00  25 min  Flashcards
+  15:00  10 min  Flashcards
+2026-11-10  45/50 min
+  10:00  45 min  Mock oral exam
+
+Deadlines
+2026-11-09  Mock oral exam: finish 2026-11-10, 1 day(s) late
+  short by 45 min at deadline
+2026-11-09  Flashcards: finish 2026-11-09, on time
+```
+
+Related course or field workflow: [Lehigh fixed commitment calendar](https://studentaffairs.lehigh.edu/content/fixed-commitment-calendar-0).
